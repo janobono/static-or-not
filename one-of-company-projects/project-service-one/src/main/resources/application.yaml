@@ -1,0 +1,6 @@
+# ===============================
+# = LOGGING
+# ===============================
+logging:
+  level:
+    sk.janobono.oocp: ${LOG_LEVEL:debug}
