@@ -34,7 +34,7 @@ public class PstService {
         final String code = codeFormatter.format(scdfPrefix, codeNumber);
         log.debug("code = {}", code);
 
-        final String generatedName = randomString.alphabet().generate(20);
+        final String generatedName = randomString.alphabet(20);
         log.debug("generatedName = {}", generatedName);
 
         final int score = ThreadLocalRandom.current().nextInt(minScore, maxScore + 1);

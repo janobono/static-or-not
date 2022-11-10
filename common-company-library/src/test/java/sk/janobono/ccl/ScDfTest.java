@@ -11,8 +11,12 @@ class ScDfTest {
     private static final String SCDF_RESULT = "lsctzyaienauo lsctzyaienauo";
 
     @Test
-    void textWithDiacritic_textWithoutDiacritic() {
+    void toDf_TestText_EqualsToExpectedResult() {
         assertThat(ScDf.toDf(TEXT)).isEqualTo(DF_RESULT);
+    }
+
+    @Test
+    void toScDf_TestText_EqualsToExpectedResult() {
         assertThat(ScDf.toScDf(TEXT)).isEqualTo(SCDF_RESULT);
     }
 }

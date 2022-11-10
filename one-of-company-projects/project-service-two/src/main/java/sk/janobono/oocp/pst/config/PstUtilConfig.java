@@ -9,6 +9,6 @@ public class PstUtilConfig {
 
     @Bean
     public RandomString randomString() {
-        return RandomString.INSTANCE();
+        return new RandomString();
     }
 }

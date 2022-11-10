@@ -3,7 +3,7 @@ package sk.janobono.ccl;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RandomStringTest {
 
@@ -12,7 +12,7 @@ class RandomStringTest {
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    RandomString.INSTANCE().generate(5, 2);
+                    new RandomString().alphaNumeric(0, 0, 0, 5, 2);
                 }
         );
     }
@@ -22,9 +22,7 @@ class RandomStringTest {
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    RandomString.INSTANCE()
-                            .alphaNumeric(2, 5, 3)
-                            .generate(8);
+                    new RandomString().alphaNumeric(2, 5, 3, 8, 8);
                 }
         );
     }
@@ -34,56 +32,41 @@ class RandomStringTest {
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    RandomString.INSTANCE()
-                            .alphaNumeric(2, 5, 3)
-                            .generate(5, 8);
+                    new RandomString().alphaNumeric(2, 5, 3, 5, 8);
                 }
         );
     }
 
     @Test
     void generateNumeric() {
-        String generated = RandomString.INSTANCE()
-                .numeric()
-                .generate(20);
-
+        String generated = new RandomString().numeric(20);
         assertThat(generated.length()).isEqualTo(20);
         assertThat(generated).containsPattern("(%d)*");
     }
 
     @Test
     void generateAlfa() {
-        String generated = RandomString.INSTANCE()
-                .alphabet()
-                .generate(20);
-
+        String generated = new RandomString().alphabet(20);
         assertThat(generated.length()).isEqualTo(20);
         assertThat(generated).containsPattern("[a-z, A-Z]*");
     }
 
     @Test
     void generateAlfaNumeric() {
-        String generated = RandomString.INSTANCE()
-                .alphaNumeric()
-                .generate(20);
-
+        String generated = new RandomString().alphaNumeric(20);
         assertThat(generated.length()).isEqualTo(20);
         assertThat(generated).containsPattern("[a-z, A-Z, 0-9]*");
     }
 
     @Test
     void generateAlfaNumericWithSpecials() {
-        String generated = RandomString.INSTANCE()
-                .alphaNumericWithSpecial()
-                .generate(20);
+        String generated = new RandomString().alphaNumericWithSpecial(20);
         assertThat(generated.length()).isEqualTo(20);
     }
 
     @Test
     void generateConcrete() {
-        String generated = RandomString.INSTANCE()
-                .alphaNumeric(5, 10, 5)
-                .generate(20);
+        String generated = new RandomString().alphaNumeric(5, 10, 5, 20, 20);
         assertThat(generated.length()).isEqualTo(20);
 
         int numbers = 0;
@@ -106,9 +89,7 @@ class RandomStringTest {
 
     @Test
     void generateBetween() {
-        String generated = RandomString.INSTANCE()
-                .alphaNumeric(5, 10, 5)
-                .generate(50, 200);
+        String generated = new RandomString().alphaNumeric(5, 10, 5, 50, 200);
         assertThat(generated.length()).isBetween(50, 200);
 
         int numbers = 0;

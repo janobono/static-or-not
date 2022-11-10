@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
 public class RandomString {
     private enum Type {
         NUMERIC(true, false, false),
@@ -25,6 +26,11 @@ public class RandomString {
         }
     }
 
+    private record Params(
+            Type type, int minNumbers, int minAlpha, int minAlphaCap, int minSpecial
+    ) {
+    }
+
     private static final Character[] NUMBERS = new Character[]{
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
     };
@@ -41,99 +47,72 @@ public class RandomString {
             '.', ':', '~', '!', '@', '#', '$', '%', '*', '_'
     };
 
-    private Type type = Type.ALPHA_NUMERIC;
-
-    private int minNumbers = 0;
-
-    private int minAlpha = 0;
-
-    private int minAlphaCap = 0;
-
-    private int minSpecial = 0;
-
     private final SecureRandom rnd;
 
-    private RandomString(SecureRandom rnd) {
-        this.rnd = rnd;
+    public RandomString() {
+        this("SHA1PRNG");
     }
 
-    public static RandomString INSTANCE() {
-        return INSTANCE("SHA1PRNG");
-    }
-
-    public static RandomString INSTANCE(String algorithm) {
+    public RandomString(String algorithm) {
         try {
-            return new RandomString(SecureRandom.getInstance(algorithm));
+            this.rnd = SecureRandom.getInstance(algorithm);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Algorithm use for randomizer not exist.");
+            throw new RuntimeException(e);
         }
     }
 
-    public RandomString numeric() {
-        this.type = Type.NUMERIC;
-        return this;
+    public String numeric(int length) {
+        return numeric(length, length);
     }
 
-    public RandomString alphabet() {
-        return alphabet(0, 0);
+    public String numeric(int minLength, int maxLength) {
+        return generate(new Params(Type.NUMERIC, 0, 0, 0, 0), minLength, maxLength);
     }
 
-    public RandomString alphabet(int minChars, int minCapitals) {
-        this.type = Type.ALPHA;
-        this.minAlpha = minChars;
-        this.minAlphaCap = minCapitals;
-        return this;
+    public String alphabet(int length) {
+        return alphabet(0, 0, length, length);
     }
 
-    public RandomString alphaNumeric() {
-        return alphaNumeric(0, 0, 0);
+    public String alphabet(int minChars, int minCapitals, int minLength, int maxLength) {
+        return generate(new Params(Type.ALPHA, 0, minChars, minCapitals, 0), minLength, maxLength);
     }
 
-    public RandomString alphaNumeric(int minNumbers, int minChars, int minCapitals) {
-        this.type = Type.ALPHA_NUMERIC;
-        this.minNumbers = minNumbers;
-        this.minAlpha = minChars;
-        this.minAlphaCap = minCapitals;
-        return this;
+    public String alphaNumeric(int length) {
+        return alphaNumeric(0, 0, 0, length, length);
     }
 
-    public RandomString alphaNumericWithSpecial() {
-        return alphaNumericWithSpecial(0, 0, 0, 0);
+    public String alphaNumeric(int minNumbers, int minChars, int minCapitals, int minLength, int maxLength) {
+        return generate(new Params(Type.ALPHA_NUMERIC, minNumbers, minChars, minCapitals, 0), minLength, maxLength);
     }
 
-    public RandomString alphaNumericWithSpecial(int minNumbers, int minChars, int minCapitals, int minSpecial) {
-        this.type = Type.ALPHA_NUMERIC_SPECIAL;
-        this.minNumbers = minNumbers;
-        this.minAlpha = minChars;
-        this.minAlphaCap = minCapitals;
-        this.minSpecial = minSpecial;
-        return this;
+    public String alphaNumericWithSpecial(int length) {
+        return alphaNumericWithSpecial(0, 0, 0, 0, length, length);
     }
 
-    public String generate(int length) {
-        return generate(length, length);
+    public String alphaNumericWithSpecial(int minNumbers, int minChars, int minCapitals, int minSpecial, int minLength, int maxLength) {
+        return generate(new Params(Type.ALPHA_NUMERIC_SPECIAL, minNumbers, minChars, minCapitals, minSpecial), minLength, maxLength);
     }
 
-    public String generate(int minLength, int maxLength) {
-        checkMinimalCharacters(minLength, maxLength);
+    private String generate(Params params, int minLength, int maxLength) {
+        checkMinimalCharacters(params, minLength, maxLength);
         int totalLength = getTotalStringLength(minLength, maxLength);
 
         List<Character> result = new ArrayList<>();
-        if (type.useAlpha) {
-            result.addAll(randomize(minAlpha, ALPHA));
-            result.addAll(randomize(minAlphaCap, ALPHA_CAP));
+        if (params.type().useAlpha) {
+            result.addAll(randomize(params.minAlpha(), ALPHA));
+            result.addAll(randomize(params.minAlphaCap(), ALPHA_CAP));
         }
 
-        if (type.useNumbers) {
-            result.addAll(randomize(minNumbers, NUMBERS));
+        if (params.type().useNumbers) {
+            result.addAll(randomize(params.minNumbers(), NUMBERS));
         }
 
-        if (type.useSpecial) {
-            result.addAll(randomize(minSpecial, SPECIAL));
+        if (params.type().useSpecial) {
+            result.addAll(randomize(params.minSpecial(), SPECIAL));
         }
 
         if (result.size() < totalLength) {
-            result.addAll(randomize(totalLength - result.size(), charactersByType()));
+            result.addAll(randomize(totalLength - result.size(), charactersByType(params)));
         }
 
         Collections.shuffle(result, rnd);
@@ -142,11 +121,11 @@ public class RandomString {
                 .collect(Collectors.joining());
     }
 
-    private void checkMinimalCharacters(int minLength, int maxLength) {
+    private void checkMinimalCharacters(Params params, int minLength, int maxLength) {
         if (maxLength < minLength) {
             throw new RuntimeException("Min length cannot be more then min length");
         }
-        int totalMinimals = getTotalMinimals();
+        int totalMinimals = getTotalMinimals(params);
         if ((minLength == maxLength) && (totalMinimals > minLength)) {
             throw new RuntimeException("You define more minimal characters than total length of string");
         } else if (totalMinimals > minLength) {
@@ -157,16 +136,16 @@ public class RandomString {
         }
     }
 
-    private int getTotalMinimals() {
+    private int getTotalMinimals(Params params) {
         int totalMinimals = 0;
-        if (type.useAlpha) {
-            totalMinimals += minAlpha + minAlphaCap;
+        if (params.type().useAlpha) {
+            totalMinimals += params.minAlpha() + params.minAlphaCap();
         }
-        if (type.useNumbers) {
-            totalMinimals += minNumbers;
+        if (params.type().useNumbers) {
+            totalMinimals += params.minNumbers();
         }
-        if (type.useSpecial) {
-            totalMinimals += minSpecial;
+        if (params.type().useSpecial) {
+            totalMinimals += params.minSpecial();
         }
         return totalMinimals;
     }
@@ -191,16 +170,16 @@ public class RandomString {
         return result;
     }
 
-    private Character[] charactersByType() {
+    private Character[] charactersByType(Params params) {
         List<Character> result = new ArrayList<>();
-        if (type.useAlpha) {
+        if (params.type().useAlpha) {
             result.addAll(Arrays.asList(ALPHA));
             result.addAll(Arrays.asList(ALPHA_CAP));
         }
-        if (type.useNumbers) {
+        if (params.type().useNumbers) {
             result.addAll(Arrays.asList(NUMBERS));
         }
-        if (type.useSpecial) {
+        if (params.type().useSpecial) {
             result.addAll(Arrays.asList(SPECIAL));
         }
         return result.toArray(Character[]::new);
